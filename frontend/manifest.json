@@ -1,0 +1,16 @@
+{
+  "name": "FinPulse Mobile - Bancolombia Analytics",
+  "short_name": "FinPulse",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1128",
+  "theme_color": "#0A1128",
+  "description": "Monitoreo analítico transaccional en tiempo real y alertas de anomalías en la nube",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

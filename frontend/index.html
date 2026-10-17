@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FinPulse Mobile - Monitoreo Analítico Bancolombia</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#0A1128">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-main: #070D1E;
+      --bg-card: #101B38;
+      --bg-card-hover: #16244C;
+      --accent-yellow: #FDDA24;
+      --accent-blue: #0084F4;
+      --accent-cyan: #00E5FF;
+      --status-green: #00E676;
+      --status-red: #FF3B30;
+      --status-orange: #FF9500;
+      --text-primary: #FFFFFF;
+      --text-secondary: #94A3B8;
+      --border-color: #1E293B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Mobile Container Frame */
+    .mobile-frame {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background-color: var(--bg-main);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-left: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      padding-bottom: 30px;
+    }
+
+    /* Push Notification Floating Toast */
+    .push-toast {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150%);
+      width: 90%;
+      max-width: 440px;
+      background: linear-gradient(135deg, #2D1515, #1A0D0D);
+      border: 1px solid var(--status-red);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 25px rgba(255, 59, 48, 0.35);
+      z-index: 9999;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .push-toast.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .push-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .push-content {
+      flex: 1;
+    }
+
+    .push-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FF7B72;
+      margin-bottom: 2px;
+    }
+
+    .push-body {
+      font-size: 12px;
+      color: #E2E8F0;
+      line-height: 1.4;
+    }
+
+    .push-time {
+      font-size: 10px;
+      color: #94A3B8;
+      margin-top: 4px;
+    }
+
+    /* Header Bar */
+    header {
+      padding: 18px 20px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(16, 27, 56, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 32px;
+      height: 32px;
+      background: var(--accent-yellow);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #070D1E;
+      font-size: 16px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--status-green);
+    }
+
+    .status-badge.anomaly {
+      background: rgba(255, 59, 48, 0.15);
+      border-color: rgba(255, 59, 48, 0.4);
+      color: var(--status-red);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: currentColor;
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    /* Sub-bar / Cloud Latency */
+    .cloud-meta-bar {
+      padding: 8px 20px;
+      background: #0B132B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .cloud-meta-bar span strong {
+      color: var(--accent-cyan);
+    }
+
+    /* Main Container */
+    main {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Hero KPI Card */
+    .hero-kpi-card {
+      background: linear-gradient(135deg, #101B38, #182852);
+      border-radius: 18px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-kpi-card::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -20%;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(0, 132, 244, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .hero-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .hero-value {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--status-green);
+      line-height: 1;
+      letter-spacing: -1px;
+      transition: color 0.3s;
+    }
+
+    .hero-value.critical {
+      color: var(--status-red);
+    }
+
+    .hero-delta {
+      font-size: 13px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--status-green);
+    }
+
+    .hero-delta.negative {
+      background: rgba(255, 59, 48, 0.15);
+      color: var(--status-red);
+    }
+
+    .hero-subinfo {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .subinfo-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .subinfo-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .subinfo-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    /* Grid KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mini-card {
+      background: var(--bg-card);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .mini-card-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .mini-card-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .mini-card-hint {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Channel Performance Breakdown */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .section-title span {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+
+    .channels-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .channel-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .channel-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .channel-stats {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .channel-rate {
+      font-weight: 700;
+      color: var(--status-green);
+    }
+
+    .channel-rate.critical {
+      color: var(--status-red);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: var(--status-green);
+      transition: width 0.4s ease, background-color 0.3s;
+    }
+
+    .progress-bar-fill.critical {
+      background: var(--status-red);
+    }
+
+    /* Chart Container */
+    .chart-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 180px;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    /* Simulation Control Center */
+    .sim-card {
+      background: #0E162D;
+      border: 1px dashed rgba(253, 218, 36, 0.4);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .sim-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-yellow);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sim-buttons-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-sim {
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-sim:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-sim.danger {
+      background: rgba(255, 59, 48, 0.15);
+      border-color: rgba(255, 59, 48, 0.4);
+      color: #FF7B72;
+    }
+
+    .btn-sim.resolve {
+      grid-column: span 2;
+      background: rgba(0, 230, 118, 0.15);
+      border-color: rgba(0, 230, 118, 0.4);
+      color: var(--status-green);
+      font-weight: 700;
+    }
+
+    /* Notification Bell Action Button */
+    .btn-notify-req {
+      background: transparent;
+      border: none;
+      color: var(--accent-yellow);
+      font-size: 18px;
+      cursor: pointer;
+      position: relative;
+      padding: 4px;
+    }
+
+    .btn-notify-req .badge-count {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: var(--status-red);
+      color: white;
+      font-size: 9px;
+      font-weight: 800;
+      border-radius: 10px;
+      padding: 1px 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <!-- Push Notification Floating Toast -->
+    <div id="pushToast" class="push-toast">
+      <div class="push-icon">🚨</div>
+      <div class="push-content">
+        <div id="pushTitle" class="push-title">Alerta de Anomalía</div>
+        <div id="pushBody" class="push-body">Detectada caída en transacciones PSE</div>
+        <div id="pushTime" class="push-time">Hace unos instantes • Nube AWS Serverless</div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <div class="brand-group">
+        <div class="brand-badge">B</div>
+        <div>
+          <div class="brand-title">FinPulse Mobile</div>
+          <div class="brand-subtitle">Analítica Transaccional Bancolombia</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button id="notifyBtn" class="btn-notify-req" title="Activar Notificaciones Push del Sistema">
+          🔔<span id="alertCountBadge" class="badge-count" style="display: none;">1</span>
+        </button>
+        <div id="statusBadge" class="status-badge">
+          <div class="pulse-dot"></div>
+          <span id="statusText">En Línea</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Cloud Edge Latency Meta -->
+    <div class="cloud-meta-bar">
+      <span>Nube: <strong>AWS us-east-1</strong></span>
+      <span>Latencia Edge: <strong id="edgeLatency">24 ms</strong></span>
+      <span>Cache: <strong>Redis L1</strong></span>
+    </div>
+
+    <!-- Content -->
+    <main>
+      <!-- Hero KPI Card -->
+      <section class="hero-kpi-card">
+        <div class="hero-label">Tasa de Aprobación Global (Último Minuto)</div>
+        <div class="hero-value-row">
+          <div id="globalApprovalVal" class="hero-value">97.8%</div>
+          <div id="globalApprovalDelta" class="hero-delta">+2.8% vs SLA</div>
+        </div>
+        <div class="hero-subinfo">
+          <div class="subinfo-item">
+            <span class="subinfo-label">Transacciones / Seg (TPS)</span>
+            <span id="tpsVal" class="subinfo-val">4.2 TPS</span>
+          </div>
+          <div class="subinfo-item">
+            <span class="subinfo-label">Latencia Transaccional</span>
+            <span id="avgLatencyVal" class="subinfo-val">185 ms</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mini KPI Grid -->
+      <div class="kpi-grid">
+        <div class="mini-card">
+          <div class="mini-card-label">Total Tx Minuto</div>
+          <div id="volTotalVal" class="mini-card-value">254</div>
+          <div class="mini-card-hint">Flujo multicanal</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-label">Aprobadas / Rechazadas</div>
+          <div id="volRatioVal" class="mini-card-value">248 / 6</div>
+          <div class="mini-card-hint">Consistente con histórico</div>
+        </div>
+      </div>
+
+      <!-- Real-time Chart -->
+      <section class="chart-card">
+        <div class="section-title">
+          Tendencia de Aprobación (%)
+          <span>Meta: 95.0% SLA</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="approvalChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Channel Breakdown -->
+      <section>
+        <div class="section-title">
+          Desglose por Canal de Pago
+          <span>En Tiempo Real</span>
+        </div>
+        <div class="channels-card">
+          <!-- PSE -->
+          <div class="channel-row">
+            <div class="channel-header">
+              <span>💳 PSE (Pagos en Línea)</span>
+              <span id="pseRate" class="channel-rate">98.1%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="pseBar" class="progress-bar-fill" style="width: 98%;"></div>
+            </div>
+            <div class="channel-stats" id="pseStats">Vol: 72 | Lat: 190 ms</div>
+          </div>
+
+          <!-- QR Bancolombia -->
+          <div class="channel-row">
+            <div class="channel-header">
+              <span>📱 QR Bancolombia / Interoperable</span>
+              <span id="qrRate" class="channel-rate">97.4%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="qrBar" class="progress-bar-fill" style="width: 97%;"></div>
+            </div>
+            <div class="channel-stats" id="qrStats">Vol: 85 | Lat: 140 ms</div>
+          </div>
+
+          <!-- Tarjetas Débito -->
+          <div class="channel-row">
+            <div class="channel-header">
+              <span>🏧 Tarjetas Débito (Visa/MC)</span>
+              <span id="cardRate" class="channel-rate">96.8%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="cardBar" class="progress-bar-fill" style="width: 96%;"></div>
+            </div>
+            <div class="channel-stats" id="cardStats">Vol: 54 | Lat: 210 ms</div>
+          </div>
+
+          <!-- Transferencias -->
+          <div class="channel-row">
+            <div class="channel-header">
+              <span>🔄 Transferencias Cuentas</span>
+              <span id="transRate" class="channel-rate">99.0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="transBar" class="progress-bar-fill" style="width: 99%;"></div>
+            </div>
+            <div class="channel-stats" id="transStats">Vol: 43 | Lat: 110 ms</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Simulation Center (For Live Demo & Grading) -->
+      <section class="sim-card">
+        <div class="sim-header">
+          ⚡ Panel de Simulación y Pruebas Push (Demostración)
+        </div>
+        <div class="sim-buttons-grid">
+          <button class="btn-sim danger" onclick="simulateAnomaly('pse_drop')">🚨 Caída PSE</button>
+          <button class="btn-sim danger" onclick="simulateAnomaly('qr_spike')">⚠️ Rechazos QR</button>
+          <button class="btn-sim danger" onclick="simulateAnomaly('system_latency')">⏱️ Latencia Alta</button>
+          <button class="btn-sim" onclick="requestNotificationPerm()">🔔 Activar Push</button>
+          <button class="btn-sim resolve" onclick="resolveAnomaly()">✅ Restablecer Estado Normal</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
