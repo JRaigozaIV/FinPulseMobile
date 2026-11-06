@@ -131,5 +131,5 @@ En la operación analítica y transaccional bancaria, los analistas de datos, in
 
 ---
 
-**Autor**: Juan José Raigoza Calderón  
+**Autor**: Juan José Raigoza Calderón  | Jorge Mario Vélez Osorio
 **Curso**: Diseño de Aplicaciones Móviles — Taller ABP Entrega 1 (20%)
