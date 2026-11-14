@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
     private fun sendNativePushNotification(context: Context, title: String, message: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -175,9 +175,9 @@ fun FinPulseDashboardScreen(onSendPushNotification: (String, String) -> Unit) {
     val bgMain = Color(0xFF070D1E)
     val bgCard = Color(0xFF101B38)
     val accentYellow = Color(0xFFFDDA24)
-    val accentCyan = Color(0xFF00E5FF)
-    val statusGreen = Color(0xFF00E676)
-    val statusRed = Color(0xFFFF3B30)
+    val accentCyan = Color(0xFF59CBE8)
+    val statusGreen = Color(0xFF00C389)
+    val statusRed = Color(0xFFFF7F41)
 
     Column(
         modifier = Modifier
