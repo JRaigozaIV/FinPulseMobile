@@ -1,0 +1,35 @@
+{
+  "entorno": "backend local (uvicorn, 1 worker), cliente en la misma maquina; NO incluye red movil",
+  "peticiones": 200,
+  "latencia_ms": {
+    "p50": 1.47,
+    "p95": 2.13,
+    "max": 3.81
+  },
+  "payload_metrics_live_bytes": {
+    "json": 695,
+    "gzip": 349
+  },
+  "pwa_bytes": {
+    "index.html": 17445,
+    "app.js": 8159,
+    "manifest.json": 451,
+    "sw.js": 1470,
+    "total": 27525
+  },
+  "escenario_anomalia": {
+    "tipo": "pse_drop",
+    "muestras_hasta_alerta": 1,
+    "alerta_inmediata_en_la_misma_peticion": true,
+    "severidad": "CRITICAL",
+    "reglas_disparadas": [
+      "CHANNEL_DROP_PSE",
+      "STATISTICAL_ZSCORE_ANOMALY",
+      "GLOBAL_APPROVAL_DROP"
+    ],
+    "mensaje": "Anomalía en canal PSE: Aprobación cayó a 69.4%",
+    "pse_aprobacion_pct": 69.66,
+    "pse_latencia_ms": 2814.1,
+    "aprobacion_global_pct": 87.54
+  }
+}
